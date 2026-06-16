@@ -1,4 +1,4 @@
-# EduManage Pro
+# Cotching Institute Management Dashboard
 
 A localhost-first coaching institute management dashboard built with React, TypeScript, Vite, Tailwind CSS, React Query, React Router, Chart.js, Node.js, Express, Prisma and PostgreSQL.
 
