@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum FeeStatus {
+  PAID
+  PENDING
+  PARTIAL
+  OVERDUE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  FAILED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(STUDENT)
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  student      Student?
+  teacher      Teacher?
+  activities   ActivityLog[]
+}
+
+model Student {
+  id          String       @id @default(cuid())
+  userId      String?      @unique
+  name        String
+  email       String       @unique
+  phone       String
+  gender      Gender
+  dateOfBirth DateTime
+  address     String
+  parentName  String
+  parentPhone String
+  joiningDate DateTime
+  feesStatus  FeeStatus    @default(PENDING)
+  courseId    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User?        @relation(fields: [userId], references: [id])
+  course      Course?      @relation(fields: [courseId], references: [id])
+  attendance  Attendance[]
+  fees        Fee[]
+  results     Result[]
+}
+
+model Teacher {
+  id            String      @id @default(cuid())
+  userId        String?     @unique
+  name          String
+  email         String      @unique
+  phone         String
+  qualification String
+  experience    Int
+  salary        Decimal     @db.Decimal(10, 2)
+  joiningDate   DateTime
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  user          User?       @relation(fields: [userId], references: [id])
+  courses       Course[]
+  timetables    Timetable[]
+}
+
+model Course {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  duration    String
+  fees        Decimal     @db.Decimal(10, 2)
+  teacherId   String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  teacher     Teacher?    @relation(fields: [teacherId], references: [id])
+  students    Student[]
+  exams       Exam[]
+  timetables  Timetable[]
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  studentId String
+  date      DateTime
+  status    AttendanceStatus
+  remarks   String?
+  createdAt DateTime         @default(now())
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date])
+}
+
+model Fee {
+  id            String        @id @default(cuid())
+  studentId     String
+  courseId      String?
+  amount        Decimal       @db.Decimal(10, 2)
+  dueDate       DateTime
+  paymentDate   DateTime?
+  paymentStatus PaymentStatus @default(PENDING)
+  receiptNo     String?       @unique
+  createdAt     DateTime      @default(now())
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Exam {
+  id        String    @id @default(cuid())
+  title     String
+  courseId  String
+  date      DateTime
+  maxMarks  Int
+  createdAt DateTime  @default(now())
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  results   Result[]
+}
+
+model Result {
+  id        String   @id @default(cuid())
+  examId    String
+  studentId String
+  marks     Int
+  grade     String
+  rank      Int?
+  createdAt DateTime @default(now())
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+}
+
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Timetable {
+  id          String   @id @default(cuid())
+  courseId    String
+  teacherId   String?
+  classroom   String
+  dayOfWeek   String
+  startTime   String
+  endTime     String
+  createdAt   DateTime @default(now())
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
